@@ -1,16 +1,16 @@
 <template>
-<NConfigProvider :locale="itIT" :date-locale="dateItIT" :theme-overrides="themeOverrides" inline-theme-disabled>
-    <NuxtLayout>
-        <NDialogProvider>
-            <NuxtPage />
-        </NDialogProvider>
-    </NuxtLayout>
-</NConfigProvider>
+    <NConfigProvider :locale="itIT" :date-locale="dateItIT" :theme-overrides="themeOverrides" inline-theme-disabled>
+        <NuxtLayout>
+            <NModalProvider>
+                <NuxtPage />
+            </NModalProvider>
+        </NuxtLayout>
+    </NConfigProvider>
 </template>
 
 <script lang="ts" setup>
 import type { GlobalThemeOverrides } from 'naive-ui'
-import { NConfigProvider, NDialogProvider } from 'naive-ui'
+import { NConfigProvider, NModalProvider } from 'naive-ui'
 import { itIT, dateItIT } from 'naive-ui'
 
 const colorAzure = '#5AC4ED'

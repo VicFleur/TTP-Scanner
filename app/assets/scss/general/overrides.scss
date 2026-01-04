@@ -433,4 +433,9 @@
     border-radius: 50%;
 }
 
+// MODAL
+.n-card.n-modal {
+    max-width: calc(var(--size-column-max) - (var(--margin-page) * 2));
+}
+
 /*! purgecss end ignore */
