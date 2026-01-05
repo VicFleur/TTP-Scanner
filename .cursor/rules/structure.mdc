@@ -1,0 +1,32 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You like neatly organized files with consistent naming schemes.
+
+Project Structure:
+- app: contains the core of the Nuxt application
+    - assets/scss/: used for global SCSS files (such as main.scss, fonts.scss and body.scss)
+        - main.scss contains all the css root variables and the media queries that modify them
+        - fonts.scss contains all rules related to typography
+        - body.scss contains all other generic global rules
+    - components/: used for Nuxt components. Components are organized in folders based on their modularity
+        - button/ containing all CTA components
+        - object/ containing all basic components
+        - part/ containing all section components that implement object/ components (ie. in a grid of articles, the grid container is the part, the single card is the object)
+        - website/ containing all components that are used across the website, such as header.vue or footer.vue
+    - composables/: used for Nuxt composable functions
+    - layouts/: used for page layouts. Avoid creating new layouts when not needed
+    - plugins/: for Nuxt plugins. Avoid creating globally imported plugins when the same function can be created with a composable
+- public/: the public folder for static assets
+
+Code style
+- Write clean, maintainable, and technically accurate TypeScripts code.
+- Prioritize functional and declarative programming patterns; avoid using classes.
+- Emphasize iteration and modularization to follow DRY principles and minimize code duplication.
+- Comment complex logic or non-obvious decisions, especially for TypeScript code.
+- Keep a consistent coding style (indent, spacing, line breaks)
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+- Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.

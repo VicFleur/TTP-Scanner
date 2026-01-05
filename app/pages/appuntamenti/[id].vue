@@ -7,24 +7,24 @@
             </template>
             <div class="modalContent">
                 <div class="paragraph">
-                    <p>Nome Cognome<br>Prenotazione per 2 posti</p>
+                    <p>{{ scanResult?.owner_first_name }} {{ scanResult?.owner_last_name }}<br>Prenotazione per {{ scanResult?.posti_count }} posti</p>
                 </div>
                 <div class="buttons">
-                    <NButton type="primary" size="large" round>Valida biglietto</NButton>
-                    <NButton secondary size="large" round>Valida tutti i biglietti</NButton>
+                    <NButton type="primary" size="large" round :loading="validating" @click="validateSingle">Valida biglietto</NButton>
+                    <NButton secondary size="large" round :loading="validating" @click="validateAll">Valida tutti i biglietti</NButton>
                 </div>
             </div>
         </NModal>
         <NModal v-model:show="showErrorModal" preset="card" :mask-closable="false" @close="closeModal">
             <template #header>
-                <div>Codice già validato</div>
+                <div>{{ errorTitle }}</div>
             </template>
             <div class="modalContent">
                 <div class="paragraph">
-                    <p>Nome Cognome<br>Prenotazione per 2 posti<br>Codice validato il 04/01/2026 alle 10:00</p>
+                    <p>{{ errorMessage }}</p>
                 </div>
                 <div class="buttons">
-                    <NButton secondary size="large" round>Chiudi</NButton>
+                    <NButton secondary size="large" round @click="closeModal">Chiudi</NButton>
                 </div>
             </div>
         </NModal>
@@ -38,12 +38,12 @@
                 <div class="title3light">{{ formatoDataOraLungo(new Date(dataAppuntamento.data)) }}</div> -->
 
                 <div class="counter">
-                    <div class="title1blight"><strong>0</strong> di 120</div>
+                    <div class="title1blight"><strong>0</strong> di {{ totalePosti }}</div>
                 </div>
-                <div class="scannerCont" @click="showModal = true">
+                <div class="scannerCont">
                     <NSpin :show="searching">
                         <ClientOnly>
-                            <Scanner :qrbox="{ width: 250, height: 125 }" @detect="handleDetect" ref="scannerRef" />
+                            <Scanner :qrbox="{ width: 300, height: 100 }" @detect="handleDetect" ref="scannerRef" />
                         </ClientOnly>
                     </NSpin>
                 </div>
@@ -55,18 +55,36 @@
 <script lang="ts" setup>
 import { NModal, NButton, NSpin } from 'naive-ui';
 
+interface ScanResult {
+    valid: boolean
+    message: string
+    posto_id?: string
+    prenotazione_id?: string
+    posti_count?: number
+    owner_first_name?: string
+    owner_last_name?: string
+    data_appuntamento?: string
+    nome_appuntamento?: string
+}
+
 definePageMeta({
     middleware: ['private-area']
 })
 
 const { getItemById } = useDirectusItems();
 const { formatoDataOraLungo } = useOrari();
+const directus = useDirectus()
 const route = useRoute();
 
 const showModal = ref(false);
 const showErrorModal = ref(false);
 const scannerRef = ref<any>(null);
 const searching = ref(false);
+const validating = ref(false);
+
+const scanResult = ref<ScanResult | null>(null);
+const errorTitle = ref('Errore');
+const errorMessage = ref('');
 
 const { data: dataAppuntamento } = useAsyncData<DateAppuntamento>(`dateAppuntamenti-${route.params.id}`, () => getItemById({
     collection: 'date_appuntamenti',
@@ -75,7 +93,9 @@ const { data: dataAppuntamento } = useAsyncData<DateAppuntamento>(`dateAppuntame
         fields: [
             'id',
             'appuntamento.nome',
-            'data'
+            'data',
+
+            'prenotazioni_appuntamenti.prenotazioni_appuntamenti_posti.annullato',
         ]
     }
 }));
@@ -85,18 +105,82 @@ const breadcrumbItems = computed(() => {
         label: dataAppuntamento.value?.appuntamento?.nome ?? 'Appuntamento senza nome',
     }]
 })
+const totalePosti = computed(() => {
+    return dataAppuntamento.value?.prenotazioni_appuntamenti?.filter((prenotazione) => !prenotazione.prenotazioni_appuntamenti_posti.annullato).length ?? 0;
+})
 
-const handleDetect = (decodedText: string, decodedResult: any) => {
+const handleDetect = async (decodedText: string, decodedResult: any) => {
     scannerRef.value.pauseScanner();
     searching.value = true;
-    //console.log(decodedText, decodedResult);
 
-    setTimeout(() => {
+    try {
+        const response = await directus<ScanResult>('/appuntamenti/scan', {
+            method: 'POST',
+            body: { code: decodedText }
+        });
+
         searching.value = false;
-        showModal.value = true;
-    }, 2000);
+
+        if (response.valid) {
+            scanResult.value = response;
+            showModal.value = true;
+        } else {
+            errorTitle.value = 'Codice non valido';
+            errorMessage.value = response.message;
+            showErrorModal.value = true;
+        }
+    } catch (e: any) {
+        searching.value = false;
+        errorTitle.value = 'Errore';
+        errorMessage.value = e?.data?.message ?? 'Si è verificato un errore durante la scansione';
+        showErrorModal.value = true;
+    }
 }
+
+const validateSingle = async () => {
+    if (!scanResult.value?.posto_id) return;
+    validating.value = true;
+
+    try {
+        await directus('/appuntamenti/scan/validate', {
+            method: 'POST',
+            body: { posto_id: scanResult.value.posto_id }
+        });
+        closeModal();
+    } catch (e: any) {
+        showModal.value = false;
+        errorTitle.value = 'Errore validazione';
+        errorMessage.value = e?.data?.message ?? 'Si è verificato un errore durante la validazione';
+        showErrorModal.value = true;
+    } finally {
+        validating.value = false;
+    }
+}
+
+const validateAll = async () => {
+    if (!scanResult.value?.prenotazione_id) return;
+    validating.value = true;
+
+    try {
+        await $fetch('/appuntamenti/scan/validate', {
+            method: 'POST',
+            body: { prenotazione_id: scanResult.value.prenotazione_id }
+        });
+        closeModal();
+    } catch (e: any) {
+        showModal.value = false;
+        errorTitle.value = 'Errore validazione';
+        errorMessage.value = e?.data?.message ?? 'Si è verificato un errore durante la validazione';
+        showErrorModal.value = true;
+    } finally {
+        validating.value = false;
+    }
+}
+
 const closeModal = () => {
+    showModal.value = false;
+    showErrorModal.value = false;
+    scanResult.value = null;
     scannerRef.value.resumeScanner();
 }
 

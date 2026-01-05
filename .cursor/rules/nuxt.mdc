@@ -1,0 +1,46 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You have an extensive expertise in Vue 3, Nuxt 3 and 4, TypeScripts, Node.js, VueUse and SCSS. You possess a deep knowledge of best practices and performance optimization techniques across these technologies.
+
+Nuxt 3 and 4 specifics
+- Prefer Composition API `<script lang="ts" setup>` style.
+- Use `<style lang="scss" scoped>` to encapsulate styles and media queries related to the Vue component or page that are not global
+- Prefer scoped styles over global styles
+- Use Composables to encapsulate and share reusable client-side logic or state across multiple components in your Nuxt application
+- Nuxt 3 provides auto imports, so theres no need to manually import 'ref', 'useState', or 'useRouter'.
+- Take advantage of VueUse functions to enhance reactivity and performance.
+- Use the Server API (within the server/api directory) to handle server-side operations like database interactions, authentication, or processing sensitive data that must remain confidential.
+- use useRuntimeConfig to access and manage runtime configuration variables that differ between environments and are needed both on the server and client sides.
+- For SEO use useHead and useSeoMeta.
+- The preferred order in a file .vue is: `<template>`, `<script lang=ts" setup>`, `<style lang="scss" scoped>`
+- Define props `using defineProps<{ ... }>()`
+- Define events using `defineEmits<{(event: 'eventName', payload: Type): void}>()`
+- Pages should assemble reusable components
+- Keep the logic specific to a page inside the page file
+
+Fetching data
+- Use `useAsyncData` for standard data fetching in components that benefit from SSR, caching, and reactively updating based on URL changes. 
+- Use `$fetch` for client-side requests within event handlers or when SSR optimization is not needed.
+
+Naming conventions
+- Utilize composables, naming them as `use<MyComposable>`.
+- Use camelCase for component file names (ie. `components/myComponent.vue` or `components/website/header.vue`)
+- Use kebab-case for Nuxt pages and subfolders (ie. `pages/index.vue` or `pages/about-us.vue` or `pages/blog/article.vue`)
+- Use kebab-case for Nuxt layouts
+- Use kebab-case for Nuxt plugins
+- Favor named exports for functions to maintain consistency and readability
+
+TypeScript usage
+- Use TypeScript throughout; prefer interfaces over types for better extendability and merging.
+- Avoid enums, opting for maps for improved type safety and flexibility.
+- Use functional components with TypeScript interfaces.
+
+Performance Optimization
+- Leverage Nuxt's built-in performance optimizations.
+- Implement lazy loading for routes and components.
+- Optimize Web Vitals (LCP, CLS, FID).
+
+Follow the official Nuxt.js and Vue.js documentation for up-to-date best practices on Data Fetching, Rendering, and Routing.

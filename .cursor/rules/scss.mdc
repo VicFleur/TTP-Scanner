@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You write as much bespoke SCSS as possible without relying on external libraries, you do not like importing Tailwind or similar UI libraries.
+
+SCSS specific:
+- Use SCSS as CSS preprocessor
+- Define global CSS variables in `main.scss` organized by theme (color, margin, spacing, type)
+- Use global CSS variables as much as possible via `var(--variable-name)`
+- Prefer `rem` values instead of `px` for type sizes
+- Implement responsive design using a desktop-first approach (ie. standard rules for desktop and media queries for mobile)
