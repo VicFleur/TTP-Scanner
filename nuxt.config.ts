@@ -7,6 +7,10 @@ export default defineNuxtConfig({
         },
         public: {
             api: process.env.DIRECTUS_URL,
+            directus: {
+                url: process.env.DIRECTUS_URL,
+                token: process.env.DIRECTUS_TOKEN
+            }
         }
     },
 

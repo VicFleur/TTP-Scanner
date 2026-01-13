@@ -1,55 +1,55 @@
 <template>
-    <div v-if="dataAppuntamento">
+<div v-if="dataAppuntamento">
 
-        <NModal v-model:show="showModal" preset="card" :mask-closable="false" @close="closeModal">
-            <template #header>
-                <div>Codice valido</div>
-            </template>
-            <div class="modalContent">
-                <div class="paragraph">
-                    <p>{{ scanResult?.owner_first_name }} {{ scanResult?.owner_last_name }}<br>Prenotazione per {{ scanResult?.posti_count }} posti</p>
-                </div>
-                <div class="buttons">
-                    <NButton type="primary" size="large" round :loading="validating" @click="validateSingle">Valida biglietto</NButton>
-                    <NButton secondary size="large" round :loading="validating" @click="validateAll">Valida tutti i biglietti</NButton>
-                </div>
+    <NModal v-model:show="showModal" preset="card" :mask-closable="false" @close="closeModal">
+        <template #header>
+            <div>Codice valido</div>
+        </template>
+        <div class="modalContent">
+            <div class="paragraph">
+                <p>{{ scanResult?.owner_first_name }} {{ scanResult?.owner_last_name }}<br>Prenotazione per {{ scanResult?.posti_count }} posti</p>
             </div>
-        </NModal>
-        <NModal v-model:show="showErrorModal" preset="card" :mask-closable="false" @close="closeModal">
-            <template #header>
-                <div>{{ errorTitle }}</div>
-            </template>
-            <div class="modalContent">
-                <div class="paragraph">
-                    <p>{{ errorMessage }}</p>
-                </div>
-                <div class="buttons">
-                    <NButton secondary size="large" round @click="closeModal">Chiudi</NButton>
-                </div>
+            <div class="buttons">
+                <NButton type="primary" size="large" round :loading="validating" @click="validateSingle">Valida biglietto</NButton>
+                <NButton secondary size="large" round :loading="validating" @click="validateAll">Valida tutti i biglietti</NButton>
             </div>
-        </NModal>
+        </div>
+    </NModal>
+    <NModal v-model:show="showErrorModal" preset="card" :mask-closable="false" @close="closeModal">
+        <template #header>
+            <div>{{ errorTitle }}</div>
+        </template>
+        <div class="modalContent">
+            <div class="paragraph">
+                <p>{{ errorMessage }}</p>
+            </div>
+            <div class="buttons">
+                <NButton secondary size="large" round @click="closeModal">Chiudi</NButton>
+            </div>
+        </div>
+    </NModal>
 
-        <main>
-            <div class="cont">
-                <div class="breadcrumb">
-                    <OggettoBreadcrumbText :routes="breadcrumbItems" />
-                </div>
-                <!-- <div class="title3b">{{ dataAppuntamento.appuntamento?.nome }}</div>
+    <main>
+        <div class="cont">
+            <div class="breadcrumb">
+                <OggettoBreadcrumbText :routes="breadcrumbItems" />
+            </div>
+            <!-- <div class="title3b">{{ dataAppuntamento.appuntamento?.nome }}</div>
                 <div class="title3light">{{ formatoDataOraLungo(new Date(dataAppuntamento.data)) }}</div> -->
 
-                <div class="counter">
-                    <div class="title1blight"><strong>0</strong> di {{ totalePosti }}</div>
-                </div>
-                <div class="scannerCont">
-                    <NSpin :show="searching">
-                        <ClientOnly>
-                            <Scanner :qrbox="{ width: 300, height: 100 }" @detect="handleDetect" ref="scannerRef" />
-                        </ClientOnly>
-                    </NSpin>
-                </div>
+            <div class="counter">
+                <div class="title1blight"><strong>{{ postiValidati }}</strong> di {{ totalePosti }}</div>
             </div>
-        </main>
-    </div>
+            <div class="scannerCont">
+                <NSpin :show="searching">
+                    <ClientOnly>
+                        <Scanner :qrbox="{ width: 300, height: 100 }" @detect="handleDetect" ref="scannerRef" />
+                    </ClientOnly>
+                </NSpin>
+            </div>
+        </div>
+    </main>
+</div>
 </template>
 
 <script lang="ts" setup>
@@ -71,6 +71,7 @@ definePageMeta({
     middleware: ['private-area']
 })
 
+const { $directus } = useNuxtApp();
 const { getItemById } = useDirectusItems();
 const { formatoDataOraLungo } = useOrari();
 const directus = useDirectus()
@@ -85,6 +86,8 @@ const validating = ref(false);
 const scanResult = ref<ScanResult | null>(null);
 const errorTitle = ref('Errore');
 const errorMessage = ref('');
+
+const posti = ref<PrenotazioniAppuntamentiPosti[]>([]);
 
 const { data: dataAppuntamento } = useAsyncData<DateAppuntamento>(`dateAppuntamenti-${route.params.id}`, () => getItemById({
     collection: 'date_appuntamenti',
@@ -107,6 +110,9 @@ const breadcrumbItems = computed(() => {
 })
 const totalePosti = computed(() => {
     return dataAppuntamento.value?.prenotazioni_appuntamenti?.filter((prenotazione) => !prenotazione.prenotazioni_appuntamenti_posti.annullato).length ?? 0;
+})
+const postiValidati = computed(() => {
+    return posti.value.filter((posto) => posto.status === 'scanned' && !posto.annullato).length;
 })
 
 const handleDetect = async (decodedText: string, decodedResult: any) => {
@@ -183,6 +189,58 @@ const closeModal = () => {
     scanResult.value = null;
     scannerRef.value.resumeScanner();
 }
+
+onMounted(async () => {
+
+    await $directus.connect();
+
+    const { subscription } = await $directus.subscribe('prenotazioni_appuntamenti_posti', {
+        uid: `prenotazioni_appuntamenti_posti_${route.params.id}`,
+        query: {
+            fields: [
+                'id',
+                'status',
+                'annullato'
+            ],
+            filter: {
+                prenotazione: {
+                    data_appuntamento: route.params.id as string
+                }
+            }
+        },
+    });
+
+    for await (const item of subscription) {
+        switch (item.event) {
+            case 'init':
+                posti.value = item.data as any[];
+                break;
+            case 'create':
+                posti.value.push(item.data as any);
+                break;
+            case 'update':
+                for (const posto of item.data) {
+                    const indexUpdate = posti.value.findIndex((p) => p.id === posto.id);
+                    if (indexUpdate !== -1) {
+                        posti.value[indexUpdate] = posto as any;
+                    }
+                }
+                break;
+            /* case 'delete':
+                for (const posto of item.data) {
+                    const indexDelete = posti.value.findIndex((p) => p.id === posto.id);
+                    if (indexDelete !== -1) {
+                        posti.value.splice(indexDelete, 1);
+                    }
+                } */
+
+        }
+
+    }
+})
+onBeforeUnmount(() => {
+    $directus.disconnect();
+});
 
 useSeoMeta({
     title: () => `${dataAppuntamento.value?.appuntamento?.nome ?? 'Appuntamento senza nome'} - Scanner`,

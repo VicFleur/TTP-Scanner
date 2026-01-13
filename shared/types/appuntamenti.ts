@@ -5,8 +5,12 @@ export interface DateAppuntamento {
     }
     data: string
     prenotazioni_appuntamenti?: {
-        prenotazioni_appuntamenti_posti: {
-            annullato: boolean
-        }
+        prenotazioni_appuntamenti_posti: PrenotazioniAppuntamentiPosti[]
     }[]
+}
+
+export interface PrenotazioniAppuntamentiPosti {
+    id: string
+    status: string
+    annullato: boolean
 }
