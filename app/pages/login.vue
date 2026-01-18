@@ -27,6 +27,10 @@
 import type { FormInst, FormItemRule } from 'naive-ui'
 import { NButton, NInput, NForm, NFormItem, useDialog } from 'naive-ui'
 
+useSeoMeta({
+    title: 'Login'
+})
+
 const { validateEmail } = useValidation()
 const { login } = useDirectusAuth()
 //const dialog = useDialog()

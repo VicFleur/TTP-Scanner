@@ -17,6 +17,7 @@ export default defineNuxtConfig({
     modules: [
         'nuxt-directus',
         '@nuxt/fonts',
+        '@nuxtjs/robots',
         '@vueuse/nuxt',
     ],
 
@@ -52,6 +53,9 @@ export default defineNuxtConfig({
                 'policies.policy',
             ]
         }
+    },
+    robots: {
+        disallow: ['/']
     },
 
     build: {

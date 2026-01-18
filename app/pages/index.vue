@@ -24,6 +24,10 @@ definePageMeta({
     middleware: ['private-area']
 })
 
+useSeoMeta({
+    title: 'Appuntamenti'
+})
+
 const { getItems } = useDirectusItems();
 const { formatoDataOraLungo } = useOrari();
 
