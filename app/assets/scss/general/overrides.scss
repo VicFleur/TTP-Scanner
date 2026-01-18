@@ -435,6 +435,7 @@
 
 // MODAL
 .n-card.n-modal {
+    width: calc(100vw - (var(--margin-page) * 2));
     max-width: calc(var(--size-column-max) - (var(--margin-page) * 2));
 }
 

@@ -36,7 +36,7 @@ const loginForm = ref<FormInst | null>(null)
 const data = reactive<LoginCredentials>({
     email: '',
     password: '',
-    //remember: false
+    remember: true
 })
 
 const rules = {

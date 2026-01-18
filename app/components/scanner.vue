@@ -1,9 +1,15 @@
 <template>
+<div class="wrapper">
     <div :id="elementId" class="scanner"></div>
+    <div v-if="!isScanning && !isLoading" class="overlay">
+        <NButton type="primary" round @click="startScan">Avvia Fotocamera</NButton>
+    </div>
+</div>
 </template>
 
 <script lang="ts" setup>
 import { Html5Qrcode, Html5QrcodeSupportedFormats, type Html5QrcodeCameraScanConfig } from 'html5-qrcode';
+import { NButton } from 'naive-ui';
 
 const props = withDefaults(defineProps<{
     qrbox?: number | { width: number, height: number };
@@ -24,9 +30,14 @@ const emit = defineEmits<{
 const elementId = useId()
 const scanner = ref<Html5Qrcode | null>(null);
 const isScanning = ref(false);
+const isLoading = ref(true);
+const errorMessage = ref('');
 
 const startScan = async () => {
     if (!scanner.value || isScanning.value) return;
+
+    isLoading.value = true;
+    errorMessage.value = '';
 
     const config: Html5QrcodeCameraScanConfig = {
         fps: props.fps,
@@ -48,9 +59,18 @@ const startScan = async () => {
             }
         );
         isScanning.value = true;
-    } catch (err) {
+    } catch (err: any) {
         emit("init-error", err);
         console.error("Error starting scanner", err);
+
+        // Specific user-friendly messages
+        if (err?.name === 'NotAllowedError') {
+            errorMessage.value = "Accesso alla fotocamera negato. Controlla le impostazioni.";
+        } else if (err?.name === 'NotFoundError') {
+            errorMessage.value = "Nessuna fotocamera trovata.";
+        }
+    } finally {
+        isLoading.value = false;
     }
 };
 
@@ -111,8 +131,37 @@ onUnmounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.scanner {
+.wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+
+    &:deep(.scanner) {
     width: 100%;
     height: 100%;
+
+        &>div:not(#qr-shaded-region) {
+            display: none !important;
+        }
+    }
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+    z-index: 10;
+    padding: 20px;
 }
 </style>

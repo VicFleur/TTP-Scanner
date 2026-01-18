@@ -63,7 +63,7 @@ export default defineNuxtConfig({
     },
     vite: {
         server: {
-            allowedHosts: ['3000.upclose.dev']
+            allowedHosts: ['3000.upclose.dev', 'scanner.turismotorino.local']
         }
     },
     sourcemap: {

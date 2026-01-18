@@ -10,8 +10,8 @@
                 <p>{{ scanResult?.owner_first_name }} {{ scanResult?.owner_last_name }}<br>Prenotazione per {{ scanResult?.posti_count }} posti</p>
             </div>
             <div class="buttons">
-                <NButton type="primary" size="large" round :loading="validating" @click="validateSingle">Valida biglietto</NButton>
-                <NButton secondary size="large" round :loading="validating" @click="validateAll">Valida tutti i biglietti</NButton>
+                <NButton type="primary" size="large" round :loading="validatingSingle" @click="validateSingle">Valida biglietto</NButton>
+                <NButton secondary size="large" round :loading="validatingAll" @click="validateAll">Valida tutti i biglietti</NButton>
             </div>
         </div>
     </NModal>
@@ -65,6 +65,7 @@ interface ScanResult {
     owner_last_name?: string
     data_appuntamento?: string
     nome_appuntamento?: string
+    date_scanned?: string
 }
 
 definePageMeta({
@@ -81,7 +82,8 @@ const showModal = ref(false);
 const showErrorModal = ref(false);
 const scannerRef = ref<any>(null);
 const searching = ref(false);
-const validating = ref(false);
+const validatingSingle = ref(false);
+const validatingAll = ref(false);
 
 const scanResult = ref<ScanResult | null>(null);
 const errorTitle = ref('Errore');
@@ -98,8 +100,17 @@ const { data: dataAppuntamento } = useAsyncData<DateAppuntamento>(`dateAppuntame
             'appuntamento.nome',
             'data',
 
+            'prenotazioni_appuntamenti.prenotazioni_appuntamenti_posti.status',
             'prenotazioni_appuntamenti.prenotazioni_appuntamenti_posti.annullato',
-        ]
+        ],
+        deep: {
+            prenotazioni_appuntamenti: {
+                limit: -1,
+                prenotazioni_appuntamenti_posti: {
+                    limit: -1
+                }
+            }
+        }
     }
 }));
 
@@ -109,7 +120,8 @@ const breadcrumbItems = computed(() => {
     }]
 })
 const totalePosti = computed(() => {
-    return dataAppuntamento.value?.prenotazioni_appuntamenti?.filter((prenotazione) => !prenotazione.prenotazioni_appuntamenti_posti.annullato).length ?? 0;
+    const listaPosti = dataAppuntamento.value?.prenotazioni_appuntamenti?.map((prenotazione) => prenotazione.prenotazioni_appuntamenti_posti).flat()
+    return listaPosti?.filter((posto) => posto.status !== 'revoked' && !posto.annullato).length ?? 0;
 })
 const postiValidati = computed(() => {
     return posti.value.filter((posto) => posto.status === 'scanned' && !posto.annullato).length;
@@ -132,7 +144,12 @@ const handleDetect = async (decodedText: string, decodedResult: any) => {
             showModal.value = true;
         } else {
             errorTitle.value = 'Codice non valido';
-            errorMessage.value = response.message;
+            if (response.date_scanned) {
+                const localDate = new Date(response.date_scanned).toLocaleString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                errorMessage.value = `Biglietto già utilizzato in data ${localDate}`;
+            } else {
+                errorMessage.value = response.message;
+            }
             showErrorModal.value = true;
         }
     } catch (e: any) {
@@ -145,7 +162,7 @@ const handleDetect = async (decodedText: string, decodedResult: any) => {
 
 const validateSingle = async () => {
     if (!scanResult.value?.posto_id) return;
-    validating.value = true;
+    validatingSingle.value = true;
 
     try {
         await directus('/appuntamenti/scan/validate', {
@@ -159,16 +176,16 @@ const validateSingle = async () => {
         errorMessage.value = e?.data?.message ?? 'Si è verificato un errore durante la validazione';
         showErrorModal.value = true;
     } finally {
-        validating.value = false;
+        validatingSingle.value = false;
     }
 }
 
 const validateAll = async () => {
     if (!scanResult.value?.prenotazione_id) return;
-    validating.value = true;
+    validatingAll.value = true;
 
     try {
-        await $fetch('/appuntamenti/scan/validate', {
+        await directus('/appuntamenti/scan/validate', {
             method: 'POST',
             body: { prenotazione_id: scanResult.value.prenotazione_id }
         });
@@ -179,7 +196,7 @@ const validateAll = async () => {
         errorMessage.value = e?.data?.message ?? 'Si è verificato un errore durante la validazione';
         showErrorModal.value = true;
     } finally {
-        validating.value = false;
+        validatingAll.value = false;
     }
 }
 
@@ -268,7 +285,19 @@ main {
     background-color: black;
     border-radius: var(--size-card-radius);
     overflow: hidden;
-    aspect-ratio: 1.3333;
+    aspect-ratio: 3 / 4;
+
+    &:deep(.n-spin-container) {
+        position: relative;
+        height: 100%;
+        width: 100%;
+
+        .n-spin-content {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+    }
 }
 
 .modalContent {

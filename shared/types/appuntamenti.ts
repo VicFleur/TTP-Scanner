@@ -11,6 +11,6 @@ export interface DateAppuntamento {
 
 export interface PrenotazioniAppuntamentiPosti {
     id: string
-    status: string
+    status: 'issued' | 'scanned' | 'revoked'
     annullato: boolean
 }
