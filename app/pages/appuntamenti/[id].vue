@@ -134,7 +134,7 @@ const handleDetect = async (decodedText: string, decodedResult: any) => {
     try {
         const response = await directus<ScanResult>('/appuntamenti/scan', {
             method: 'POST',
-            body: { code: decodedText }
+            body: { code: decodedText, data_appuntamento: route.params.id as string }
         });
 
         searching.value = false;
@@ -167,7 +167,7 @@ const validateSingle = async () => {
     try {
         await directus('/appuntamenti/scan/validate', {
             method: 'POST',
-            body: { posto_id: scanResult.value.posto_id }
+            body: { posto_id: scanResult.value.posto_id, data_appuntamento: route.params.id as string }
         });
         closeModal();
     } catch (e: any) {
@@ -187,7 +187,7 @@ const validateAll = async () => {
     try {
         await directus('/appuntamenti/scan/validate', {
             method: 'POST',
-            body: { prenotazione_id: scanResult.value.prenotazione_id }
+            body: { prenotazione_id: scanResult.value.prenotazione_id, data_appuntamento: route.params.id as string }
         });
         closeModal();
     } catch (e: any) {
